@@ -140,7 +140,7 @@ func TestAzureClient_Synthesize_Success(t *testing.T) {
 		httpClient: server.Client(),
 	}
 
-	audio, err := client.Synthesize("Hello, Azure!", VoiceNova)
+	audio, err := client.Synthesize("Hello, Azure!", VoiceNova, 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -164,7 +164,7 @@ func TestAzureClient_Synthesize_APIError(t *testing.T) {
 		httpClient: server.Client(),
 	}
 
-	_, err := client.Synthesize("Hello", VoiceAlloy)
+	_, err := client.Synthesize("Hello", VoiceAlloy, 0)
 	if err == nil {
 		t.Error("expected error for API failure")
 	}

@@ -66,6 +66,29 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
+func TestIsValidSpeed(t *testing.T) {
+	tests := []struct {
+		speed    float64
+		expected bool
+	}{
+		{0.25, true},  // min valid
+		{1.0, true},   // default
+		{4.0, true},   // max valid
+		{2.5, true},   // middle
+		{0.24, false}, // below min
+		{4.1, false},  // above max
+		{0, false},    // zero
+		{-1.0, false}, // negative
+	}
+
+	for _, tt := range tests {
+		result := IsValidSpeed(tt.speed)
+		if result != tt.expected {
+			t.Errorf("IsValidSpeed(%v) = %v, want %v", tt.speed, result, tt.expected)
+		}
+	}
+}
+
 func TestSynthesize_Success(t *testing.T) {
 	expectedAudio := []byte("fake-mp3-audio-data")
 
