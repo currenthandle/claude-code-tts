@@ -25,11 +25,32 @@ func main() {
 	logging.Info("Log file: %s", logging.GetLogPath())
 	logging.Info("========================================")
 
-	// Check for required environment variable
-	if os.Getenv("OPENAI_API_KEY") == "" {
-		logging.Fatal("OPENAI_API_KEY environment variable is required")
+	// Determine provider and validate required environment variables
+	provider := os.Getenv("TTS_PROVIDER")
+	if provider == "" || provider == "openai" {
+		if os.Getenv("OPENAI_API_KEY") == "" {
+			logging.Fatal("OPENAI_API_KEY environment variable is required for OpenAI provider")
+		}
+		logging.Info("Using OpenAI TTS provider (API key length: %d)", len(os.Getenv("OPENAI_API_KEY")))
+	} else if provider == "azure" {
+		var missing []string
+		if os.Getenv("AZURE_OPENAI_ENDPOINT") == "" {
+			missing = append(missing, "AZURE_OPENAI_ENDPOINT")
+		}
+		if os.Getenv("AZURE_OPENAI_API_KEY") == "" {
+			missing = append(missing, "AZURE_OPENAI_API_KEY")
+		}
+		if os.Getenv("AZURE_OPENAI_DEPLOYMENT") == "" {
+			missing = append(missing, "AZURE_OPENAI_DEPLOYMENT")
+		}
+		if len(missing) > 0 {
+			logging.Fatal("Missing required Azure environment variables: %v", missing)
+		}
+		logging.Info("Using Azure OpenAI TTS provider (endpoint: %s, deployment: %s)",
+			os.Getenv("AZURE_OPENAI_ENDPOINT"), os.Getenv("AZURE_OPENAI_DEPLOYMENT"))
+	} else {
+		logging.Fatal("Unknown TTS_PROVIDER: %s (valid: openai, azure)", provider)
 	}
-	logging.Info("OPENAI_API_KEY is set (length: %d)", len(os.Getenv("OPENAI_API_KEY")))
 
 	// Create and start the MCP server
 	srv, err := server.New()
