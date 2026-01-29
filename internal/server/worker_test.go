@@ -18,8 +18,8 @@ func TestNewWorkerPool(t *testing.T) {
 	if wp.queueSize != 100 {
 		t.Errorf("expected queueSize 100, got %d", wp.queueSize)
 	}
-	if wp.ttsClient == nil {
-		t.Error("expected ttsClient to be initialized")
+	if wp.ttsProvider == nil {
+		t.Error("expected ttsProvider to be initialized")
 	}
 	if wp.audioPlayer == nil {
 		t.Error("expected audioPlayer to be initialized")
@@ -298,8 +298,8 @@ func TestNewWorkerPool_TableDriven(t *testing.T) {
 			if wp.queueSize != tt.queueSize {
 				t.Errorf("expected queueSize %d, got %d", tt.queueSize, wp.queueSize)
 			}
-			if wp.ttsClient == nil {
-				t.Error("expected ttsClient to be initialized")
+			if wp.ttsProvider == nil {
+				t.Error("expected ttsProvider to be initialized")
 			}
 			if wp.audioPlayer == nil {
 				t.Error("expected audioPlayer to be initialized")

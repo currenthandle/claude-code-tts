@@ -101,3 +101,8 @@ func (c *Client) Synthesize(text string, voice Voice) ([]byte, error) {
 
 	return audioData, nil
 }
+
+// Name returns the provider name
+func (c *Client) Name() string {
+	return "openai"
+}
