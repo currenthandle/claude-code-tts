@@ -60,17 +60,25 @@ func (c *AzureClient) Name() string {
 
 // azureTTSRequest represents the Azure API request payload
 type azureTTSRequest struct {
-	Model string `json:"model"`
-	Input string `json:"input"`
-	Voice string `json:"voice"`
+	Model string  `json:"model"`
+	Input string  `json:"input"`
+	Voice string  `json:"voice"`
+	Speed float64 `json:"speed,omitempty"`
 }
 
 // Synthesize converts text to speech using Azure OpenAI
-func (c *AzureClient) Synthesize(text string, voice Voice) ([]byte, error) {
+// If speed is 0, DefaultSpeed (1.0) is used
+func (c *AzureClient) Synthesize(text string, voice Voice, speed float64) ([]byte, error) {
+	effectiveSpeed := speed
+	if effectiveSpeed == 0 {
+		effectiveSpeed = DefaultSpeed
+	}
+
 	reqBody := azureTTSRequest{
 		Model: "tts-1",
 		Input: text,
 		Voice: string(voice),
+		Speed: effectiveSpeed,
 	}
 
 	jsonData, err := json.Marshal(reqBody)

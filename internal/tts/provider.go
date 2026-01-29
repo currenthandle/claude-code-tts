@@ -8,7 +8,8 @@ import (
 // Provider defines the interface for TTS providers
 type Provider interface {
 	// Synthesize converts text to speech and returns audio data
-	Synthesize(text string, voice Voice) ([]byte, error)
+	// If speed is 0, the provider's default speed is used
+	Synthesize(text string, voice Voice, speed float64) ([]byte, error)
 	// Name returns the provider name
 	Name() string
 }
