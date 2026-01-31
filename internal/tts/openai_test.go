@@ -52,6 +52,7 @@ func TestIsValidVoice(t *testing.T) {
 
 func TestNewClient(t *testing.T) {
 	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("CLAUDE_TTS_SPEED", "")
 
 	client := NewClient()
 
@@ -63,6 +64,44 @@ func TestNewClient(t *testing.T) {
 	}
 	if client.httpClient == nil {
 		t.Error("expected httpClient to be initialized")
+	}
+	if client.defaultSpeed != DefaultSpeed {
+		t.Errorf("expected defaultSpeed %v, got %v", DefaultSpeed, client.defaultSpeed)
+	}
+}
+
+func TestNewClient_WithEnvSpeed(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("CLAUDE_TTS_SPEED", "1.5")
+
+	client := NewClient()
+
+	if client.defaultSpeed != 1.5 {
+		t.Errorf("expected defaultSpeed 1.5, got %v", client.defaultSpeed)
+	}
+}
+
+func TestNewClient_WithInvalidEnvSpeed(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("CLAUDE_TTS_SPEED", "5.0") // out of range
+
+	client := NewClient()
+
+	// Should fall back to default
+	if client.defaultSpeed != DefaultSpeed {
+		t.Errorf("expected defaultSpeed %v for invalid env, got %v", DefaultSpeed, client.defaultSpeed)
+	}
+}
+
+func TestNewClient_WithNonNumericEnvSpeed(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("CLAUDE_TTS_SPEED", "fast") // not a number
+
+	client := NewClient()
+
+	// Should fall back to default
+	if client.defaultSpeed != DefaultSpeed {
+		t.Errorf("expected defaultSpeed %v for non-numeric env, got %v", DefaultSpeed, client.defaultSpeed)
 	}
 }
 
@@ -86,6 +125,17 @@ func TestIsValidSpeed(t *testing.T) {
 		if result != tt.expected {
 			t.Errorf("IsValidSpeed(%v) = %v, want %v", tt.speed, result, tt.expected)
 		}
+	}
+}
+
+func TestGetDefaultSpeed(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("CLAUDE_TTS_SPEED", "2.0")
+
+	client := NewClient()
+
+	if client.GetDefaultSpeed() != 2.0 {
+		t.Errorf("expected GetDefaultSpeed() to return 2.0, got %v", client.GetDefaultSpeed())
 	}
 }
 
@@ -170,10 +220,21 @@ func TestSynthesize_APIError(t *testing.T) {
 
 // synthesizeWithURL is a test helper that allows overriding the API URL
 func synthesizeWithURL(c *Client, text string, voice Voice, url string) ([]byte, error) {
+	return synthesizeWithURLAndSpeed(c, text, voice, 0, url)
+}
+
+// synthesizeWithURLAndSpeed is a test helper that allows overriding the API URL with speed
+func synthesizeWithURLAndSpeed(c *Client, text string, voice Voice, speed float64, url string) ([]byte, error) {
+	effectiveSpeed := speed
+	if effectiveSpeed == 0 {
+		effectiveSpeed = c.defaultSpeed
+	}
+
 	reqBody := ttsRequest{
 		Model: c.model,
 		Input: text,
 		Voice: string(voice),
+		Speed: effectiveSpeed,
 	}
 
 	jsonData, err := json.Marshal(reqBody)

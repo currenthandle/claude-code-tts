@@ -524,6 +524,53 @@ func TestHandleSpeak_WithSpeed(t *testing.T) {
 	}
 }
 
+func TestHandleSpeak_WithMinSpeed(t *testing.T) {
+	srv, err := New()
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+	defer srv.Shutdown()
+
+	request := mcp.CallToolRequest{}
+	request.Params.Arguments = map[string]interface{}{
+		"text":  "Slow speech",
+		"speed": 0.25, // minimum valid
+	}
+
+	result, err := srv.handleSpeak(context.Background(), request)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.IsError {
+		content := result.Content[0].(mcp.TextContent)
+		t.Errorf("expected success with min speed, got error: %s", content.Text)
+	}
+}
+
+func TestHandleSpeak_WithMaxSpeed(t *testing.T) {
+	srv, err := New()
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+	defer srv.Shutdown()
+
+	request := mcp.CallToolRequest{}
+	request.Params.Arguments = map[string]interface{}{
+		"text":  "Fast speech",
+		"speed": 4.0, // maximum valid
+	}
+
+	result, err := srv.handleSpeak(context.Background(), request)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.IsError {
+		content := result.Content[0].(mcp.TextContent)
+		t.Errorf("expected success with max speed, got error: %s", content.Text)
+	}
+}
+
+
 func TestHandleSpeak_SpeedTooLow(t *testing.T) {
 	srv, err := New()
 	if err != nil {
@@ -575,5 +622,28 @@ func TestHandleSpeak_SpeedTooHigh(t *testing.T) {
 	content := result.Content[0].(mcp.TextContent)
 	if !strings.Contains(content.Text, "invalid speed") {
 		t.Errorf("expected 'invalid speed' error, got: %s", content.Text)
+	}
+}
+
+func TestHandleSpeak_DefaultSpeed(t *testing.T) {
+	srv, err := New()
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+	defer srv.Shutdown()
+
+	request := mcp.CallToolRequest{}
+	request.Params.Arguments = map[string]interface{}{
+		"text": "Hello without speed parameter",
+		// no speed specified - should use default
+	}
+
+	result, err := srv.handleSpeak(context.Background(), request)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.IsError {
+		content := result.Content[0].(mcp.TextContent)
+		t.Errorf("expected success with default speed, got error: %s", content.Text)
 	}
 }

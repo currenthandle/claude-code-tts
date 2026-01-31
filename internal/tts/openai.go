@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -37,24 +38,6 @@ func IsValidVoice(v string) bool {
 	return false
 }
 
-// Client handles OpenAI TTS API requests
-type Client struct {
-	apiKey     string
-	httpClient *http.Client
-	model      string
-}
-
-// NewClient creates a new TTS client
-func NewClient() *Client {
-	return &Client{
-		apiKey: os.Getenv("OPENAI_API_KEY"),
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-		model: "tts-1",
-	}
-}
-
 // Speed constants
 const (
 	MinSpeed     = 0.25
@@ -67,6 +50,38 @@ func IsValidSpeed(speed float64) bool {
 	return speed >= MinSpeed && speed <= MaxSpeed
 }
 
+// Client handles OpenAI TTS API requests
+type Client struct {
+	apiKey       string
+	httpClient   *http.Client
+	model        string
+	defaultSpeed float64
+}
+
+// NewClient creates a new TTS client
+func NewClient() *Client {
+	defaultSpeed := DefaultSpeed
+	if envSpeed := os.Getenv("CLAUDE_TTS_SPEED"); envSpeed != "" {
+		if parsed, err := strconv.ParseFloat(envSpeed, 64); err == nil && IsValidSpeed(parsed) {
+			defaultSpeed = parsed
+		}
+	}
+
+	return &Client{
+		apiKey: os.Getenv("OPENAI_API_KEY"),
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+		model:        "tts-1",
+		defaultSpeed: defaultSpeed,
+	}
+}
+
+// GetDefaultSpeed returns the client's default speed setting
+func (c *Client) GetDefaultSpeed() float64 {
+	return c.defaultSpeed
+}
+
 // ttsRequest represents the API request payload
 type ttsRequest struct {
 	Model string  `json:"model"`
@@ -76,11 +91,11 @@ type ttsRequest struct {
 }
 
 // Synthesize converts text to speech and returns MP3 audio data
-// If speed is 0, DefaultSpeed (1.0) is used
+// If speed is 0, the client's default speed is used (from CLAUDE_TTS_SPEED env or 1.0)
 func (c *Client) Synthesize(text string, voice Voice, speed float64) ([]byte, error) {
 	effectiveSpeed := speed
 	if effectiveSpeed == 0 {
-		effectiveSpeed = DefaultSpeed
+		effectiveSpeed = c.defaultSpeed
 	}
 
 	reqBody := ttsRequest{

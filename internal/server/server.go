@@ -59,7 +59,7 @@ func (s *Server) registerTools() {
 			mcp.Description("Voice to use: alloy, echo, fable, onyx, nova, shimmer (default: alloy)"),
 		),
 		mcp.WithNumber("speed",
-			mcp.Description("Speech speed: 0.25 (slow) to 4.0 (fast). Default: 1.0"),
+			mcp.Description("Speech speed: 0.25 (slow) to 4.0 (fast). Default: 1.0 or CLAUDE_TTS_SPEED env var"),
 		),
 	)
 
