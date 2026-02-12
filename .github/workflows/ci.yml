@@ -83,20 +83,19 @@ jobs:
         run: |
           mkdir -p dist
 
-          # macOS ARM64
+          # tts-server
           GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/tts-server-darwin-arm64 ./cmd/tts-server
-
-          # macOS AMD64
           GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/tts-server-darwin-amd64 ./cmd/tts-server
-
-          # Linux AMD64
-          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/tts-server-linux-amd64 ./cmd/tts-server
-
-          # Linux ARM64
-          GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/tts-server-linux-arm64 ./cmd/tts-server
-
-          # Windows AMD64
+          GOOS=linux  GOARCH=amd64 go build -ldflags="-s -w" -o dist/tts-server-linux-amd64 ./cmd/tts-server
+          GOOS=linux  GOARCH=arm64 go build -ldflags="-s -w" -o dist/tts-server-linux-arm64 ./cmd/tts-server
           GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/tts-server-windows-amd64.exe ./cmd/tts-server
+
+          # speak-text
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/speak-text-darwin-arm64 ./cmd/speak-text
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/speak-text-darwin-amd64 ./cmd/speak-text
+          GOOS=linux  GOARCH=amd64 go build -ldflags="-s -w" -o dist/speak-text-linux-amd64 ./cmd/speak-text
+          GOOS=linux  GOARCH=arm64 go build -ldflags="-s -w" -o dist/speak-text-linux-arm64 ./cmd/speak-text
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/speak-text-windows-amd64.exe ./cmd/speak-text
 
       - name: Generate checksums
         run: |

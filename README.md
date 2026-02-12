@@ -2,262 +2,121 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://golang.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/ybouhjira/claude-code-tts/actions/workflows/ci.yml/badge.svg)](https://github.com/ybouhjira/claude-code-tts/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/ybouhjira/claude-code-tts/branch/main/graph/badge.svg)](https://codecov.io/gh/ybouhjira/claude-code-tts)
+[![CI](https://github.com/currenthandle/claude-code-tts/actions/workflows/ci.yml/badge.svg)](https://github.com/currenthandle/claude-code-tts/actions/workflows/ci.yml)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io)
 
-A Text-to-Speech MCP server plugin for Claude Code that converts text to speech using OpenAI's TTS API. Get audio feedback from Claude as you work!
-
-![Demo](demo.gif)
+A Text-to-Speech MCP server plugin for Claude Code that converts text to speech using OpenAI or Azure OpenAI TTS APIs. Get audio feedback from Claude as you work!
 
 ## Features
 
+- **Multiple Providers**: OpenAI and Azure OpenAI TTS support
 - **Deterministic Auto-Speak**: Every Claude response is automatically spoken (via Stop hook)
 - **6 High-Quality Voices**: alloy, echo, fable, onyx, nova, shimmer
+- **Adjustable Speed**: 0.25x (slow) to 4.0x (fast)
 - **Worker Pool Architecture**: Non-blocking queue with concurrent processing
-- **Mutex-Protected Playback**: One audio plays at a time, no overlapping
 - **Cross-Platform**: macOS (afplay), Linux (mpv/ffplay/mpg123), Windows (PowerShell)
 - **Standalone CLI**: `speak-text` binary for direct TTS without MCP
 
 ## Quick Install
 
-```bash
-# One-liner installation
-curl -fsSL https://raw.githubusercontent.com/ybouhjira/claude-code-tts/main/install.sh | bash
-```
-
-Or install manually:
+No Go or git required — downloads a prebuilt binary:
 
 ```bash
-git clone https://github.com/ybouhjira/claude-code-tts.git ~/.claude/plugins/claude-code-tts
-cd ~/.claude/plugins/claude-code-tts
-make install
+curl -fsSL https://raw.githubusercontent.com/currenthandle/claude-code-tts/main/install.sh | bash
 ```
 
-## Requirements
+Then configure your provider and register with Claude Code:
 
-- **Go 1.21+** (for building from source)
-- **OpenAI API Key** with TTS access
+```bash
+# Set your API key (see Configuration below)
+export OPENAI_API_KEY="sk-..."
+
+# Register with Claude Code
+claude mcp add tts ~/.claude/plugins/claude-code-tts/bin/tts-server -s user
+```
+
+## Configuration
+
+### OpenAI (default)
+
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+
+### Azure OpenAI
+
+```bash
+export TTS_PROVIDER=azure
+export AZURE_OPENAI_API_KEY="your-key"
+export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com"
+export AZURE_OPENAI_DEPLOYMENT="gpt-4o-mini-tts"
+export AZURE_OPENAI_API_VERSION="2025-03-01-preview"
+```
+
+### Speed Control
+
+Set a global default speed (0.25–4.0, default 1.0):
+
+```bash
+export CLAUDE_TTS_SPEED=1.5
+```
+
+Or pass `speed` per call in the `speak` tool.
+
+### Requirements
+
 - **Audio Player**:
   - macOS: `afplay` (built-in)
   - Linux: `mpv`, `ffplay`, or `mpg123`
   - Windows: PowerShell (built-in)
 
-## Configuration
-
-Set your OpenAI API key:
-
-```bash
-export OPENAI_API_KEY="sk-..."
-```
-
-Or add to your shell profile (`~/.zshrc` or `~/.bashrc`).
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Claude Code                              │
-│                         │                                    │
-│                    MCP Protocol                              │
-│                         │                                    │
-│  ┌──────────────────────▼──────────────────────────────┐    │
-│  │              TTS MCP Server (Go)                     │    │
-│  │  ┌─────────────────────────────────────────────┐    │    │
-│  │  │              Tool Handlers                   │    │    │
-│  │  │   speak(text, voice)  │  tts_status()       │    │    │
-│  │  └─────────────┬─────────┴─────────────────────┘    │    │
-│  │                │                                     │    │
-│  │  ┌─────────────▼─────────────────────────────┐      │    │
-│  │  │           Worker Pool (2 workers)          │      │    │
-│  │  │  ┌─────────┐    ┌─────────────────────┐   │      │    │
-│  │  │  │ Job     │───►│ Queue (50 slots)    │   │      │    │
-│  │  │  │ Submit  │    └──────────┬──────────┘   │      │    │
-│  │  │  └─────────┘               │              │      │    │
-│  │  │                   ┌────────▼────────┐     │      │    │
-│  │  │                   │ Worker 1 │ 2    │     │      │    │
-│  │  │                   └────────┬────────┘     │      │    │
-│  │  └────────────────────────────│──────────────┘      │    │
-│  │                               │                      │    │
-│  │  ┌────────────────────────────▼──────────────────┐  │    │
-│  │  │              OpenAI TTS API                    │  │    │
-│  │  │         POST /v1/audio/speech                  │  │    │
-│  │  │         Model: tts-1                           │  │    │
-│  │  └───────────────────┬────────────────────────────┘  │    │
-│  │                      │                               │    │
-│  │  ┌───────────────────▼────────────────────────────┐  │    │
-│  │  │         Audio Player (Mutex Protected)          │  │    │
-│  │  │   macOS: afplay │ Linux: mpv │ Win: PowerShell  │  │    │
-│  │  └─────────────────────────────────────────────────┘  │    │
-│  └──────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
-```
-
 ## Usage
 
-### speak(text, voice)
+### speak(text, voice, speed)
 
 Convert text to speech and play it aloud.
 
-**Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `text` | string | Yes | Text to speak (max 4096 chars) |
-| `voice` | string | No | Voice to use (default: alloy) |
-
-**Available Voices:**
-| Voice | Description |
-|-------|-------------|
-| `alloy` | Neutral, balanced |
-| `echo` | Male, warm |
-| `fable` | British accent |
-| `onyx` | Deep male |
-| `nova` | Female, friendly |
-| `shimmer` | Soft female |
-
-**Example:**
-```
-Use the speak tool to say "Build completed successfully!" with the nova voice.
-```
+| `voice` | string | No | alloy, echo, fable, onyx, nova, shimmer (default: alloy) |
+| `speed` | number | No | 0.25–4.0 (default: 1.0 or `CLAUDE_TTS_SPEED`) |
 
 ### tts_status()
 
-Get the current status of the TTS system.
-
-**Returns:**
-```json
-{
-  "worker_count": 2,
-  "queue_size": 50,
-  "queue_pending": 0,
-  "total_processed": 15,
-  "total_failed": 0,
-  "is_playing": false,
-  "recent_jobs": [...]
-}
-```
-
-## Automatic TTS (Deterministic)
-
-This plugin includes a **Stop hook** that automatically speaks the first sentence of every Claude response. No configuration needed - it just works.
-
-**How it works:**
-```
-Claude responds → Stop hook fires → First sentence extracted → Audio plays
-```
-
-The hook runs in the background and won't block Claude's responses.
+Get the current status of the TTS system (queue size, processed count, recent jobs).
 
 ### speak-text CLI
 
-A standalone binary for direct TTS without going through MCP:
+Standalone binary for direct TTS without MCP:
 
 ```bash
-# Basic usage
 speak-text "Hello world"
-
-# With voice selection
 speak-text -voice onyx "Error occurred"
-```
-
-Located at `~/.claude/plugins/claude-code-tts/bin/speak-text` after installation.
-
-## Project Structure
-
-```
-claude-code-tts/
-├── cmd/
-│   ├── tts-server/
-│   │   └── main.go           # MCP server entry point
-│   └── speak-text/
-│       └── main.go           # Standalone CLI binary
-├── hooks/
-│   └── auto-speak.sh         # Stop hook for deterministic TTS
-├── internal/
-│   ├── audio/
-│   │   └── player.go         # Cross-platform audio playback
-│   ├── server/
-│   │   ├── server.go         # MCP server & tool handlers
-│   │   └── worker.go         # Worker pool implementation
-│   └── tts/
-│       └── openai.go         # OpenAI TTS client
-├── plugin.json                # Plugin metadata + hook config
-├── Makefile                   # Build automation
-└── install.sh                 # One-liner installer
 ```
 
 ## Building from Source
 
+Requires Go 1.21+:
+
 ```bash
-# Clone the repository
-git clone https://github.com/ybouhjira/claude-code-tts.git
+git clone https://github.com/currenthandle/claude-code-tts.git
 cd claude-code-tts
-
-# Build
-make build
-
-# Install to Claude Code plugins
-make install
-
-# Run tests
-make test
+make build       # Creates bin/tts-server and bin/speak-text
+make test        # Run tests
+make install     # Install to ~/.claude/plugins/claude-code-tts/
 ```
 
-## Troubleshooting
+## Architecture
 
-### "OPENAI_API_KEY environment variable is required"
-Set your OpenAI API key:
-```bash
-export OPENAI_API_KEY="sk-..."
+```
+Claude Code → MCP stdio → TTS Server → Worker Pool → OpenAI/Azure API → Audio Player
 ```
 
-### "No suitable audio player found on Linux"
-Install one of: `mpv`, `ffplay`, or `mpg123`:
-```bash
-# Ubuntu/Debian
-sudo apt install mpv
-
-# Fedora
-sudo dnf install mpv
-
-# Arch
-sudo pacman -S mpv
-```
-
-### Audio not playing on macOS
-Check that `afplay` works:
-```bash
-# Test with a sample audio file
-afplay /System/Library/Sounds/Ping.aiff
-```
-
-### Queue is full
-The default queue size is 50. If you're hitting this limit:
-1. Wait for current jobs to complete
-2. Check `tts_status()` to see pending jobs
-3. The queue will drain as jobs are processed
-
-### High latency
-- OpenAI TTS API typically takes 1-3 seconds per request
-- Audio files must download completely before playing
-- Consider keeping messages short for faster feedback
-
-## API Costs
-
-This plugin uses OpenAI's `tts-1` model:
-- **Cost**: ~$0.015 per 1,000 characters
-- **Example**: "Hello, world!" (13 chars) = ~$0.0002
-
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+- **Worker Pool**: 2 workers, 50-slot queue. `speak()` returns immediately after queuing.
+- **Mutex-Protected Playback**: One audio plays at a time.
+- **Provider Interface**: Pluggable TTS backends (OpenAI, Azure OpenAI).
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
-
-## Credits
-
-- [OpenAI TTS API](https://platform.openai.com/docs/guides/text-to-speech)
-- [mcp-go](https://github.com/mark3labs/mcp-go) - Go MCP implementation
-- [Model Context Protocol](https://modelcontextprotocol.io)
