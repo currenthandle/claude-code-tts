@@ -141,6 +141,7 @@ func TestNewPlayer_TableDriven(t *testing.T) {
 			}
 			// Verify mutex is initialized (can be locked)
 			player.mu.Lock()
+			_ = player.isPlaying // access something in the critical section
 			player.mu.Unlock()
 		})
 	}
