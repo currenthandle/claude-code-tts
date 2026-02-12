@@ -13,6 +13,7 @@ func TestNewAzureClient_Success(t *testing.T) {
 	t.Setenv("AZURE_OPENAI_ENDPOINT", "https://test.openai.azure.com")
 	t.Setenv("AZURE_OPENAI_API_KEY", "test-key")
 	t.Setenv("AZURE_OPENAI_DEPLOYMENT", "tts-deployment")
+	t.Setenv("AZURE_OPENAI_API_VERSION", "") // clear so default is tested
 
 	client, err := NewAzureClient()
 	if err != nil {
