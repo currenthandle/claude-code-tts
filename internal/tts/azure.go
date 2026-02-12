@@ -75,7 +75,7 @@ func (c *AzureClient) Synthesize(text string, voice Voice, speed float64) ([]byt
 	}
 
 	reqBody := azureTTSRequest{
-		Model: "tts-1",
+		Model: c.deployment,
 		Input: text,
 		Voice: string(voice),
 		Speed: effectiveSpeed,

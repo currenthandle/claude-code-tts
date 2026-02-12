@@ -2,7 +2,6 @@ package logging
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -79,11 +78,9 @@ func newLogger() (*Logger, error) {
 		return nil, fmt.Errorf("failed to open log file: %w", err)
 	}
 
-	multiWriter := io.MultiWriter(file, os.Stderr)
-
 	return &Logger{
 		file:     file,
-		logger:   log.New(multiWriter, "", 0),
+		logger:   log.New(file, "", 0),
 		filePath: logPath,
 		maxSize:  10 * 1024 * 1024,
 	}, nil
@@ -108,7 +105,7 @@ func (l *Logger) rotate() error {
 	}
 
 	l.file = file
-	l.logger = log.New(io.MultiWriter(file, os.Stderr), "", 0)
+	l.logger = log.New(file, "", 0)
 	l.cleanupOldLogs()
 	return nil
 }

@@ -98,8 +98,10 @@ func (s *Server) registerTools() {
 func (s *Server) handleSpeak(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	logging.Debug("Received speak tool call")
 
+	args := request.GetArguments()
+
 	// Extract text parameter
-	text, ok := request.Params.Arguments["text"].(string)
+	text, ok := args["text"].(string)
 	if !ok || text == "" {
 		logging.Warn("speak: missing or empty text parameter")
 		return mcp.NewToolResultError("text parameter is required"), nil
@@ -113,7 +115,7 @@ func (s *Server) handleSpeak(ctx context.Context, request mcp.CallToolRequest) (
 
 	// Extract voice parameter (default to alloy)
 	voice := "alloy"
-	if v, ok := request.Params.Arguments["voice"].(string); ok && v != "" {
+	if v, ok := args["voice"].(string); ok && v != "" {
 		voice = v
 	}
 
@@ -125,7 +127,7 @@ func (s *Server) handleSpeak(ctx context.Context, request mcp.CallToolRequest) (
 
 	// Extract speed parameter (0 means use default)
 	var speed float64
-	if spd, ok := request.Params.Arguments["speed"].(float64); ok {
+	if spd, ok := args["speed"].(float64); ok {
 		speed = spd
 	}
 
