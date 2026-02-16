@@ -7,16 +7,18 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
 // AzureClient handles Azure OpenAI TTS API requests
 type AzureClient struct {
-	endpoint   string // e.g., "https://my-resource.openai.azure.com"
-	apiKey     string
-	deployment string
-	apiVersion string
-	httpClient *http.Client
+	endpoint     string // e.g., "https://my-resource.openai.azure.com"
+	apiKey       string
+	deployment   string
+	apiVersion   string
+	httpClient   *http.Client
+	defaultSpeed float64
 }
 
 // NewAzureClient creates a new Azure TTS client from environment variables
@@ -42,11 +44,19 @@ func NewAzureClient() (*AzureClient, error) {
 		apiVersion = "2024-02-15-preview"
 	}
 
+	defaultSpeed := DefaultSpeed
+	if envSpeed := os.Getenv("CLAUDE_TTS_SPEED"); envSpeed != "" {
+		if parsed, err := strconv.ParseFloat(envSpeed, 64); err == nil && IsValidSpeed(parsed) {
+			defaultSpeed = parsed
+		}
+	}
+
 	return &AzureClient{
-		endpoint:   endpoint,
-		apiKey:     apiKey,
-		deployment: deployment,
-		apiVersion: apiVersion,
+		endpoint:     endpoint,
+		apiKey:       apiKey,
+		deployment:   deployment,
+		apiVersion:   apiVersion,
+		defaultSpeed: defaultSpeed,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -67,11 +77,11 @@ type azureTTSRequest struct {
 }
 
 // Synthesize converts text to speech using Azure OpenAI
-// If speed is 0, DefaultSpeed (1.0) is used
+// If speed is 0, the client's default speed is used (from CLAUDE_TTS_SPEED env or 1.0)
 func (c *AzureClient) Synthesize(text string, voice Voice, speed float64) ([]byte, error) {
 	effectiveSpeed := speed
 	if effectiveSpeed == 0 {
-		effectiveSpeed = DefaultSpeed
+		effectiveSpeed = c.defaultSpeed
 	}
 
 	reqBody := azureTTSRequest{
