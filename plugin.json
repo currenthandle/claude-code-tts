@@ -1,6 +1,6 @@
 {
   "name": "claude-code-tts",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Text-to-Speech MCP server plugin for Claude Code - converts text to speech using OpenAI or Azure OpenAI TTS API",
   "author": "Community",
   "homepage": "https://github.com/currenthandle/claude-code-tts",
